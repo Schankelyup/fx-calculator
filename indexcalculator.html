@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Калькулятор валютного форварда</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            max-width: 450px;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #d41a36;
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-weight: bold;
+            margin-top: 12px;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #d41a36;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #d41a36;
+            color: white;
+            font-size: 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #b3152a;
+        }
+        .result {
+            margin-top: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 5px;
+            display: none;
+        }
+        .hint {
+            color: grey;
+            font-size: 14px;
+            margin-top: 5px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Калькулятор валютного форварда</h2>
+        <label for="currency">Выберите валютную пару:</label>
+        <select id="currency" onchange="updateSpotRate(); validateAmount(); removeFirstOption();">
+            <option value="" selected>Выберите валютную пару</option>
+            <option value="RUB/CNY">RUB/CNY</option>
+            <option value="RUB/USD">RUB/USD</option>
+            <option value="RUB/EUR">RUB/EUR</option>
+        </select>
+        
+        <label for="amount">Сумма сделки (в валюте):</label>
+        <input type="text" id="amount" placeholder="Введите сумму в валюте" oninput="formatAmount(this); validateAmount();" disabled>
+        <div class="hint" id="amountHint">Введите сумму сделки</div>
+        <div class="error" id="amountError">Сумма сделки ниже допустимого порога</div>
+        
+        <label for="spot">Текущий рыночный курс:</label>
+        <input type="number" id="spot" readonly>
+        
+        <label for="duration">Срок сделки:</label>
+        <select id="duration">
+            <option value="0.005">1 месяц</option>
+            <option value="0.0075">3 месяца</option>
+            <option value="0.015">6 месяцев</option>
+            <option value="0.03">12 месяцев</option>
+        </select>
+        
+        <button onclick="calculateForwardRate()">Рассчитать форвардный курс</button>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        const marketRates = {
+            "RUB/USD": 91.43,
+            "RUB/EUR": 95.8,
+            "RUB/CNY": 12.49
+        };
+        
+        const minAmounts = {
+            "RUB/USD": 680000,
+            "RUB/EUR": 650000,
+            "RUB/CNY": 5000000
+        };
+
+        function updateSpotRate() {
+            let currency = document.getElementById("currency").value;
+            let amountField = document.getElementById("amount");
+            
+            if (currency) {
+                document.getElementById("spot").value = marketRates[currency];
+                amountField.disabled = false;
+            } else {
+                amountField.disabled = true;
+                amountField.value = "";
+            }
+            validateAmount();
+        }
+
+        function formatAmount(input) {
+            let value = input.value.replace(/\D/g, "");
+            input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function validateAmount() {
+            let currency = document.getElementById("currency").value;
+            let amount = parseInt(document.getElementById("amount").value.replace(/\D/g, "")) || 0;
+            let errorElement = document.getElementById("amountError");
+            let hintElement = document.getElementById("amountHint");
+            
+            if (document.getElementById("amount").value.trim() === "") {
+                errorElement.style.display = "none";
+                hintElement.style.display = "block";
+            } else if (amount < minAmounts[currency]) {
+                errorElement.style.display = "block";
+                hintElement.style.display = "none";
+            } else {
+                errorElement.style.display = "none";
+                hintElement.style.display = "none";
+            }
+        }
+
+        function calculateForwardRate() {
+            let currency = document.getElementById("currency").value;
+            let amount = parseInt(document.getElementById("amount").value.replace(/\D/g, "")) || 0;
+            let errorElement = document.getElementById("amountError");
+            
+            if (amount < minAmounts[currency]) {
+                errorElement.style.display = "block";
+                return;
+            }
+            
+            let spot = parseFloat(document.getElementById("spot").value);
+            let duration = parseFloat(document.getElementById("duration").value);
+            
+            let forwardRate = spot * (1 + duration);
+            
+            document.getElementById("result").innerHTML = "Форвардный курс: " + forwardRate.toFixed(4);
+        }
+
+        function removeFirstOption() {
+            let currencySelect = document.getElementById("currency");
+            currencySelect.remove(0);
+        }
+    </script>
+</body>
+</html>
