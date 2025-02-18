@@ -78,7 +78,7 @@
     <div class="container">
         <h2>Калькулятор валютного форварда</h2>
         <label for="currency">Выберите валютную пару:</label>
-        <select id="currency" onchange="updateSpotRate(); validateAmount(); removeFirstOption();">
+        <select id="currency" onchange="updateSpotRate(); validateAmount();">
             <option value="" selected>Выберите валютную пару</option>
             <option value="RUB/CNY">RUB/CNY</option>
             <option value="RUB/USD">RUB/USD</option>
@@ -172,11 +172,6 @@
             let forwardRate = spot * (1 + duration);
             
             document.getElementById("result").innerHTML = "Форвардный курс: " + forwardRate.toFixed(4);
-        }
-
-        function removeFirstOption() {
-            let currencySelect = document.getElementById("currency");
-            currencySelect.remove(0);
         }
     </script>
 </body>
