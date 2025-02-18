@@ -77,13 +77,16 @@
 <body>
     <div class="container">
         <h2>Калькулятор валютного форварда</h2>
-        <label for="currency">Выберите валютную пару:</label>
-        <select id="currency" onchange="updateSpotRate(); validateAmount();">
-            <option value="" selected>Выберите валютную пару</option>
-            <option value="RUB/CNY">RUB/CNY</option>
-            <option value="RUB/USD">RUB/USD</option>
-            <option value="RUB/EUR">RUB/EUR</option>
+        <label for="account">Выберите счет:</label>
+        <select id="account" onchange="updateCurrencyFromAccount()">
+            <option value="" selected>Выберите счет</option>
+            <option value="USD">Договор № 123456789012 - Доступный остаток: 980 000 USD</option>
+            <option value="EUR">Договор № 987654321098 - Доступный остаток: 700 000 EUR</option>
+            <option value="CNY">Договор № 567890123456 - Доступный остаток: 9 850 000 CNY</option>
         </select>
+        
+        <label for="currency">Валютная пара:</label>
+        <input type="text" id="currency" readonly>
         
         <label for="amount">Сумма сделки (в валюте):</label>
         <input type="text" id="amount" placeholder="Введите сумму в валюте" oninput="formatAmount(this); validateAmount();" disabled>
@@ -112,25 +115,27 @@
             "RUB/EUR": 95.8,
             "RUB/CNY": 12.49
         };
-        
+
         const minAmounts = {
             "RUB/USD": 680000,
             "RUB/EUR": 650000,
             "RUB/CNY": 5000000
         };
 
-        function updateSpotRate() {
-            let currency = document.getElementById("currency").value;
+        function updateCurrencyFromAccount() {
+            let account = document.getElementById("account").value;
+            let currencyInput = document.getElementById("currency");
             let amountField = document.getElementById("amount");
             
-            if (currency) {
-                document.getElementById("spot").value = marketRates[currency];
-                amountField.disabled = false;
-            } else {
-                amountField.disabled = true;
-                amountField.value = "";
+            if (account === "USD") {
+                currencyInput.value = "RUB/USD";
+            } else if (account === "EUR") {
+                currencyInput.value = "RUB/EUR";
+            } else if (account === "CNY") {
+                currencyInput.value = "RUB/CNY";
             }
-            validateAmount();
+            document.getElementById("spot").value = marketRates[currencyInput.value];
+            amountField.disabled = false;
         }
 
         function formatAmount(input) {
@@ -142,33 +147,17 @@
             let currency = document.getElementById("currency").value;
             let amount = parseInt(document.getElementById("amount").value.replace(/\D/g, "")) || 0;
             let errorElement = document.getElementById("amountError");
-            let hintElement = document.getElementById("amountHint");
             
-            if (document.getElementById("amount").value.trim() === "") {
-                errorElement.style.display = "none";
-                hintElement.style.display = "block";
-            } else if (amount < minAmounts[currency]) {
+            if (amount < minAmounts[currency]) {
                 errorElement.style.display = "block";
-                hintElement.style.display = "none";
             } else {
                 errorElement.style.display = "none";
-                hintElement.style.display = "none";
             }
         }
 
         function calculateForwardRate() {
-            let currency = document.getElementById("currency").value;
-            let amount = parseInt(document.getElementById("amount").value.replace(/\D/g, "")) || 0;
-            let errorElement = document.getElementById("amountError");
-            
-            if (amount < minAmounts[currency]) {
-                errorElement.style.display = "block";
-                return;
-            }
-            
             let spot = parseFloat(document.getElementById("spot").value);
             let duration = parseFloat(document.getElementById("duration").value);
-            
             let forwardRate = spot * (1 + duration);
             
             document.getElementById("result").innerHTML = "Форвардный курс: " + forwardRate.toFixed(4);
