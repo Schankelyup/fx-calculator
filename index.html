@@ -3,165 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Калькулятор валютного форварда</title>
+    <title>Рассчитать условия</title>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             background-color: #f4f4f4;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
             margin: 0;
+            padding: 20px;
         }
         .container {
-            max-width: 450px;
-            background: #ffffff;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        h2 {
-            text-align: center;
-            color: #d41a36;
-            margin-bottom: 20px;
+        .form-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
         }
         label {
+            flex: 1;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        select, input {
+            flex: 2;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .currency-label {
+            margin-left: 10px;
+            font-weight: bold;
+        }
+        .btn {
             display: block;
-            font-weight: bold;
-            margin-top: 12px;
-        }
-        input, select {
             width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #d41a36;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        button {
-            width: 100%;
-            padding: 12px;
-            background-color: #d41a36;
+            background: #007bff;
             color: white;
-            font-size: 16px;
+            padding: 10px;
             border: none;
-            border-radius: 6px;
+            border-radius: 5px;
             cursor: pointer;
-            margin-top: 20px;
-            font-weight: bold;
+            font-size: 16px;
         }
-        button:hover {
-            background-color: #b3152a;
-        }
-        .result {
-            margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            text-align: center;
-        }
-        .error {
-            color: red;
-            font-size: 14px;
-            margin-top: 5px;
+        .hidden {
             display: none;
         }
-        .hint {
-            color: grey;
-            font-size: 14px;
-            margin-top: 5px;
-            display: block;
-        }
     </style>
+    <script>
+        const baseRates = {
+            'USD': 91.00,
+            'EUR': 95.00,
+            'CNY': 12.00
+        };
+        const baseDate = new Date('2025-02-19');
+
+        function formatNumber(input) {
+            let value = input.value.replace(/\D/g, "");
+            input.value = new Intl.NumberFormat("ru-RU").format(value);
+        }
+
+        function updateCurrencyLabel() {
+            let selectedCurrency = document.getElementById("debit_currency").value;
+            document.getElementById("currency_label").innerText = selectedCurrency;
+        }
+
+        function validateCurrencies() {
+            let debitCurrency = document.getElementById("debit_currency").value;
+            let creditCurrency = document.getElementById("credit_currency").value;
+            if (debitCurrency === creditCurrency) {
+                alert("Валюта списания и валюта зачисления не могут совпадать!");
+                document.getElementById("credit_currency").value = "";
+            }
+            resetRateButton();
+        }
+
+        function resetRateButton() {
+            document.getElementById("request_rate_btn").classList.remove("hidden");
+            document.getElementById("forward_rate").classList.add("hidden");
+        }
+
+        function calculateRate() {
+            let selectedCurrency = document.getElementById("credit_currency").value;
+            let selectedDate = new Date(document.getElementById("payment_date").value);
+            let dayDifference = Math.ceil((selectedDate - baseDate) / (1000 * 60 * 60 * 24));
+            let newRate = baseRates[selectedCurrency] * (1 + 0.00025 * dayDifference);
+            document.getElementById("forward_rate").innerText = newRate.toFixed(4) + " RUB";
+            document.getElementById("request_rate_btn").classList.add("hidden");
+            document.getElementById("forward_rate").classList.remove("hidden");
+            updateAmounts(newRate);
+        }
+
+        function updateAmounts(rate) {
+            let dealAmount = parseFloat(document.getElementById("deal_amount").value.replace(/\D/g, "")) || 0;
+            let debitCurrency = document.getElementById("debit_currency").value;
+            let creditCurrency = document.getElementById("credit_currency").value;
+            
+            document.getElementById("debit_amount").value = dealAmount.toLocaleString("ru-RU") + " " + debitCurrency;
+            
+            let creditAmount = (creditCurrency === "RUB") ? (dealAmount * rate) : (dealAmount / rate);
+            document.getElementById("credit_amount").value = creditAmount.toFixed(2) + " " + creditCurrency;
+        }
+    </script>
 </head>
 <body>
     <div class="container">
-        <h2>Калькулятор валютного форварда</h2>
-        <label for="account">Выберите счет:</label>
-        <select id="account" onchange="updateCurrencyFromAccount()">
-            <option value="" selected>Выберите счет</option>
-            <option value="USD">Договор № 123456789012 - Доступный остаток: 980 000 USD</option>
-            <option value="EUR">Договор № 987654321098 - Доступный остаток: 700 000 EUR</option>
-            <option value="CNY">Договор № 567890123456 - Доступный остаток: 9 850 000 CNY</option>
-        </select>
-        
-        <label for="currency">Валютная пара:</label>
-        <input type="text" id="currency" readonly>
-        
-        <label for="amount">Сумма сделки (в валюте):</label>
-        <input type="text" id="amount" placeholder="Введите сумму в валюте" oninput="formatAmount(this); validateAmount();" disabled>
-        <div class="hint" id="amountHint">Введите сумму сделки</div>
-        <div class="error" id="amountError">Сумма сделки ниже допустимого порога</div>
-        
-        <label for="spot">Текущий рыночный курс:</label>
-        <input type="number" id="spot" readonly>
-        
-        <label for="duration">Срок сделки:</label>
-        <select id="duration">
-            <option value="0.005">1 месяц</option>
-            <option value="0.0075">3 месяца</option>
-            <option value="0.015">6 месяцев</option>
-            <option value="0.03">12 месяцев</option>
-        </select>
-        
-        <button onclick="calculateForwardRate()">Рассчитать форвардный курс</button>
-        
-        <div class="result" id="result"></div>
+        <h2>Рассчитать условия</h2>
+        <form>
+            <div class="form-group">
+                <label for="debit_currency">Валюта списания:</label>
+                <select id="debit_currency" name="debit_currency" onchange="validateCurrencies(); updateCurrencyLabel();">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="CNY">CNY</option>
+                    <option value="RUB">RUB</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="credit_currency">Валюта зачисления:</label>
+                <select id="credit_currency" name="credit_currency" onchange="validateCurrencies();">
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="CNY">CNY</option>
+                    <option value="RUB">RUB</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="payment_date">Дата платежа:</label>
+                <input type="date" id="payment_date" name="payment_date" max="2027-02-19" onchange="resetRateButton();">
+            </div>
+            <div class="form-group">
+                <label for="deal_amount">Сумма сделки:</label>
+                <input type="text" id="deal_amount" name="deal_amount" placeholder="Введите сумму" oninput="formatNumber(this); resetRateButton();">
+                <span class="currency-label" id="currency_label">USD</span>
+            </div>
+            <div class="form-group">
+                <label for="forward_rate">Форвардный курс:</label>
+                <button type="button" id="request_rate_btn" class="btn" onclick="calculateRate()">Запросить курс</button>
+                <span id="forward_rate" class="hidden"></span>
+            </div>
+            <div class="form-group">
+                <label for="debit_amount">Сумма списания:</label>
+                <input type="text" id="debit_amount" name="debit_amount" disabled>
+            </div>
+            <div class="form-group">
+                <label for="credit_amount">Сумма зачисления:</label>
+                <input type="text" id="credit_amount" name="credit_amount" disabled>
+            </div>
+            <button type="button" class="btn" disabled>Далее</button>
+        </form>
     </div>
-
-    <script>
-        const marketRates = {
-            "RUB/USD": 91.43,
-            "RUB/EUR": 95.8,
-            "RUB/CNY": 12.49
-        };
-
-        const minAmounts = {
-            "RUB/USD": 680000,
-            "RUB/EUR": 650000,
-            "RUB/CNY": 5000000
-        };
-
-        function updateCurrencyFromAccount() {
-            let account = document.getElementById("account").value;
-            let currencyInput = document.getElementById("currency");
-            let amountField = document.getElementById("amount");
-            
-            if (account === "USD") {
-                currencyInput.value = "RUB/USD";
-            } else if (account === "EUR") {
-                currencyInput.value = "RUB/EUR";
-            } else if (account === "CNY") {
-                currencyInput.value = "RUB/CNY";
-            }
-            document.getElementById("spot").value = marketRates[currencyInput.value];
-            amountField.disabled = false;
-        }
-
-        function formatAmount(input) {
-            let value = input.value.replace(/\D/g, "");
-            input.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        }
-
-        function validateAmount() {
-            let currency = document.getElementById("currency").value;
-            let amount = parseInt(document.getElementById("amount").value.replace(/\D/g, "")) || 0;
-            let errorElement = document.getElementById("amountError");
-            
-            if (amount < minAmounts[currency]) {
-                errorElement.style.display = "block";
-            } else {
-                errorElement.style.display = "none";
-            }
-        }
-
-        function calculateForwardRate() {
-            let spot = parseFloat(document.getElementById("spot").value);
-            let duration = parseFloat(document.getElementById("duration").value);
-            let forwardRate = spot * (1 + duration);
-            
-            document.getElementById("result").innerHTML = "Форвардный курс: " + forwardRate.toFixed(4);
-        }
-    </script>
 </body>
 </html>
